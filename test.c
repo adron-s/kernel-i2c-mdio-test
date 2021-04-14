@@ -1,21 +1,17 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
-#include <linux/gpio.h>
 #include <linux/of.h>
 #include <linux/of_mdio.h>
 #include <linux/version.h>
 #include <linux/platform_device.h>
-#include <linux/property.h>
-#include <linux/time.h>
-#include <linux/netdevice.h>
-#include <linux/gpio.h>
 #include <linux/i2c.h>
 #include <linux/phy.h>
 
-/* small mdio driver for access phy registers of sfp-coper phy.
+/* small mdio driver for access phy registers of sfp-coper phy(22 - 0x56) via i2c.
+	 this is a compilation of code from mdio-gpio.c ag71xx_mdio.c and sfp.c */
 
-DTS:
+/* DTS:
 
 &eth1 {
 	mdio2: mdio {
@@ -25,6 +21,7 @@ DTS:
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		i2c-bus = <&sfp_i2c>;
 		sfp_phy: ethernet-phy@22 {
 			reg = <22>;
 		};
