@@ -3,6 +3,7 @@
 #include <linux/types.h>
 #include <linux/gpio.h>
 #include <linux/of.h>
+#include <linux/version.h>
 #include <linux/platform_device.h>
 #include <linux/property.h>
 #include <linux/time.h>
@@ -11,7 +12,11 @@
 #include <linux/i2c.h>
 #include <linux/phy.h>
 
-struct mii_bus *mdio_i2c_alloc(struct device *parent, struct i2c_adapter *i2c);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,10,0)
+struct mii_bus *mdio_i2c_alloc(struct device *, struct i2c_adapter *);
+#else
+#include <linux/mdio/mdio-i2c.h>
+#endif
 
 static struct i2c_adapter *i2c_adap = NULL;
 static struct i2c_client *i2c_client = NULL;
@@ -22,7 +27,7 @@ struct platform_device *pdev = NULL;
  */
 #define SFP_PHY_ADDR	22
 
-static int do_i2c(void){
+static int do_i2c(void) {
 	struct i2c_adapter *i2c = i2c_adap;
 	struct mii_bus *i2c_mii;
 	int ret, phy_reg, phy_id1, phy_id2;
@@ -58,7 +63,7 @@ static int do_i2c(void){
 }
 
 static int __init
-testdog_init(void){
+testdog_init(void) {
 	i2c_adap = i2c_get_adapter(0);
 	if (IS_ERR(i2c_adap)) {
 		printk(KERN_WARNING "OWL: Error #1\n");
@@ -77,7 +82,7 @@ testdog_init(void){
 
 	pdev = platform_device_alloc("owl-x991y", -1);
 
-	if (pdev){
+	if (pdev) {
 		//platform_device_add_data(pdev, pdata, sizeof(*pdata);
 		platform_device_add(pdev);
 		printk(KERN_INFO "platform device = 0x%lx is ready\n", (unsigned long)pdev);
@@ -85,7 +90,7 @@ testdog_init(void){
 	}
 
 end:
-	if(pdev){
+	if(pdev) {
 		platform_device_del(pdev);
 		platform_device_put(pdev);
 	}
@@ -96,7 +101,7 @@ end:
 	return -ENODEV;
 }
 static void __exit
-testdog_exit(void){
+testdog_exit(void) {
 }
 
 module_init(testdog_init);
