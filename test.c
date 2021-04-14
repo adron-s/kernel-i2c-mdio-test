@@ -45,63 +45,78 @@ struct mii_bus *mdio_i2c_alloc(struct device *, struct i2c_adapter *);
 #include <linux/mdio/mdio-i2c.h>
 #endif
 
-static struct i2c_adapter *i2c = NULL;
-static struct mii_bus *mii_bus = NULL;
+struct i2c_mdio_info {
+	struct i2c_adapter *i2c;
+	struct mii_bus *mii_bus;
+};
 
 static int testmdio_probe(struct platform_device *pdev)
 {
-	//struct device *amdev = &pdev->dev;
+	struct i2c_mdio_info *info;
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *i2c_np;
 	int ret;
 
-	i2c = i2c_get_adapter(0); //TODO: !!!
-	if (IS_ERR(i2c)) {
-		printk(KERN_WARNING "OWL: Error #1\n");
-		i2c = NULL;
+	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
+	if (!info)
+		return -ENOMEM;
+
+	i2c_np = of_parse_phandle(np, "i2c-bus", 0);
+	if (!i2c_np) {
+		dev_err(&pdev->dev, "missing 'i2c-bus' property\n");
+		return -ENODEV;
+	}
+	//i2c = i2c_get_adapter(0);
+	info->i2c = of_find_i2c_adapter_by_node(i2c_np);
+	of_node_put(i2c_np);
+	if (IS_ERR(info->i2c)) {
+		dev_err(&pdev->dev, "can't find 'i2c-bus' adapter\n");
+		ret = PTR_ERR(info->i2c);
+		info->i2c = NULL;
 		goto error;
 	}
-	printk(KERN_INFO "i2c adapt = 0x%lx is ready\n", (unsigned long)i2c);
+	//printk(KERN_INFO "i2c adapt = 0x%lx is ready\n", (unsigned long)i2c);
 
-	if (!i2c_check_functionality(i2c, I2C_FUNC_I2C))
-		return -EINVAL;
-
-	mii_bus = mdio_i2c_alloc(&pdev->dev, i2c);
-	if (IS_ERR(mii_bus)){
-		goto error; //TODO: !
-		return PTR_ERR(mii_bus);
+	if (!i2c_check_functionality(info->i2c, I2C_FUNC_I2C)){
+		ret = -EINVAL;
+		goto error;
 	}
-
-	mii_bus->name = "SFP I2C Bus";
-	mii_bus->phy_mask = ~0;
+	info->mii_bus = mdio_i2c_alloc(&pdev->dev, info->i2c);
+	if (IS_ERR(info->mii_bus)){
+		ret = PTR_ERR(info->mii_bus);
+		info->mii_bus = NULL;
+		goto error;
+	}
+	info->mii_bus->name = "SFP I2C Bus";
+	info->mii_bus->phy_mask = ~0;
 
 	//ret = mdiobus_register(mii_bus);
-	ret = of_mdiobus_register(mii_bus, np);
-	if (ret < 0) {
-		mdiobus_free(mii_bus);
-		goto error; //TODO: !
-		return ret;
-	}
-	printk(KERN_INFO "OWL: %s - done\n", __func__);
+	ret = of_mdiobus_register(info->mii_bus, np);
+	if (ret < 0)
+		goto error;
 
+	//printk(KERN_INFO "OWL: %s - done\n", __func__);
+	platform_set_drvdata(pdev, info);
 	return 0;
 error:
-	if (i2c)
-		i2c_put_adapter(i2c);
-	return -ENODEV;
+	if (info->mii_bus)
+		mdiobus_free(info->mii_bus);
+	if (info->i2c)
+		i2c_put_adapter(info->i2c);
+	return ret;
 }
 
 static int testmdio_remove(struct platform_device *pdev)
 {
-	//struct testmdio *am = platform_get_drvdata(pdev);
-	//mdiobus_unregister(am->mii_bus);
-	if (mii_bus) {
-		mdiobus_unregister(mii_bus);
-		mdiobus_free(mii_bus);
-		mii_bus = NULL;
+	struct i2c_mdio_info *info = platform_get_drvdata(pdev);
+	if (info->mii_bus) {
+		mdiobus_unregister(info->mii_bus);
+		mdiobus_free(info->mii_bus);
+		info->mii_bus = NULL;
 	}
-	if (i2c) {
-		i2c_put_adapter(i2c);
-		i2c = NULL;
+	if (info->i2c) {
+		i2c_put_adapter(info->i2c);
+		info->i2c = NULL;
 	}
 
 	return 0;
