@@ -34,4 +34,14 @@ DT:
 	status = "okay";
 	...
 	phy-handle = <&sfp_phy>;
+
+	/* this fixed-link PHY is used if coper-sfp(&sfp_phy) is not found */
+	fallback-phy {
+		phy-mode = "sgmii";
+		fixed-link {
+			speed = <1000>;
+			full-duplex;
+		};
+	};
+
 };
