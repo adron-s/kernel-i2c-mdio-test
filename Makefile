@@ -56,3 +56,4 @@ e2k:
 clean:		
 		rm -f .*.cmd *.mod.c *.ko *.o *~ core $(TARGETS)
 		rm -fr .tmp_versions
+		rm -f *.symvers built-in.a modules.order
