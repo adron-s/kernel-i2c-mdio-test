@@ -8,34 +8,6 @@
 #include <linux/i2c.h>
 #include <linux/phy.h>
 
-/* small mdio driver for access phy registers of sfp-coper phy(22 - 0x56) via i2c.
-	 this is a compilation of code from mdio-gpio.c ag71xx_mdio.c and sfp.c */
-
-/* DTS:
-
-&eth1 {
-	mdio2: mdio {
-		status = "okay";
-
-		compatible = "virtual,i2c-mdio";
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		i2c-bus = <&sfp_i2c>;
-		sfp_phy: ethernet-phy@22 {
-			reg = <22>;
-		};
-	};
-};
-
-&eth1 {
-	status = "okay";
-	...
-	phy-handle = <&sfp_phy>;
-};
-
-*/
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,10,0)
 struct mii_bus *mdio_i2c_alloc(struct device *, struct i2c_adapter *);
 #else
@@ -47,11 +19,19 @@ struct i2c_mdio_info {
 	struct mii_bus *mii_bus;
 };
 
-static int testmdio_probe(struct platform_device *pdev)
+#define check_for_err(what, msg) \
+if (IS_ERR(what)) { 						 \
+	dev_err(&pdev->dev, msg);			 \
+	ret = PTR_ERR(what);					 \
+	what = NULL;									 \
+	goto error;										 \
+}
+
+static int mdio_sfp_i2c_probe(struct platform_device *pdev)
 {
 	struct i2c_mdio_info *info;
-	struct device_node *np = pdev->dev.of_node;
 	struct device_node *i2c_np;
+	struct device_node *np = pdev->dev.of_node;
 	int ret;
 
 	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
@@ -63,36 +43,24 @@ static int testmdio_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "missing 'i2c-bus' property\n");
 		return -ENODEV;
 	}
-	//i2c = i2c_get_adapter(0);
 	info->i2c = of_find_i2c_adapter_by_node(i2c_np);
 	of_node_put(i2c_np);
-	if (IS_ERR(info->i2c)) {
-		dev_err(&pdev->dev, "can't find 'i2c-bus' adapter\n");
-		ret = PTR_ERR(info->i2c);
-		info->i2c = NULL;
-		goto error;
-	}
-	//printk(KERN_INFO "i2c adapt = 0x%lx is ready\n", (unsigned long)i2c);
+	check_for_err(info->i2c, "can't find 'i2c-bus' adapter\n");
 
 	if (!i2c_check_functionality(info->i2c, I2C_FUNC_I2C)){
 		ret = -EINVAL;
 		goto error;
 	}
+
 	info->mii_bus = mdio_i2c_alloc(&pdev->dev, info->i2c);
-	if (IS_ERR(info->mii_bus)){
-		ret = PTR_ERR(info->mii_bus);
-		info->mii_bus = NULL;
-		goto error;
-	}
+	check_for_err(info->mii_bus, "can't alloc i2c mdio\n");
 	info->mii_bus->name = "SFP I2C Bus";
 	info->mii_bus->phy_mask = ~0;
 
-	//ret = mdiobus_register(mii_bus);
 	ret = of_mdiobus_register(info->mii_bus, np);
 	if (ret < 0)
 		goto error;
 
-	//printk(KERN_INFO "OWL: %s - done\n", __func__);
 	platform_set_drvdata(pdev, info);
 	return 0;
 error:
@@ -103,7 +71,7 @@ error:
 	return ret;
 }
 
-static int testmdio_remove(struct platform_device *pdev)
+static int mdio_sfp_i2c_remove(struct platform_device *pdev)
 {
 	struct i2c_mdio_info *info = platform_get_drvdata(pdev);
 	if (info->mii_bus) {
@@ -119,21 +87,22 @@ static int testmdio_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct of_device_id testmdio_match[] = {
-	{ .compatible = "virtual,i2c-mdio" },
+static const struct of_device_id mdio_sfp_i2c_match[] = {
+	{ .compatible = "virtual,mdio-sfp-i2c" },
 	{}
 };
 
-static struct platform_driver testmdio_driver = {
-	.probe		= testmdio_probe,
-	.remove		= testmdio_remove,
+static struct platform_driver mdio_sfp_i2c_driver = {
+	.probe		= mdio_sfp_i2c_probe,
+	.remove		= mdio_sfp_i2c_remove,
 	.driver = {
-		.name	 = "sfp-i2c-mdio",
-		.of_match_table = testmdio_match,
+		.name	 = "mdio-sfp-i2c",
+		.of_match_table = mdio_sfp_i2c_match,
 	}
 };
 
-module_platform_driver(testmdio_driver);
+module_platform_driver(mdio_sfp_i2c_driver);
+MODULE_ALIAS("platform:mdio-sfp-i2c");
 MODULE_AUTHOR("Serhii Serhieiev <adron@mstnt.com>");
-MODULE_DESCRIPTION("Test driver");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("Generic driver for MDIO bus emulation using SFP-I2C(phy id 22, i2c id 0x56)");

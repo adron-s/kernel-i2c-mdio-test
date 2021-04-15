@@ -1,0 +1,37 @@
+# kernel-i2c-mdio-test
+
+This is a small mdio driver for access phy registers of sfp-coper phy with id 22(i2c id 0x56) via i2c.
+This is a compilation of codes from mdio-gpio.c, ag71xx_mdio.c and sfp.c
+
+Tested on Mikrotik RB962 and GLC-T 1000BaseT SFP from aliexpress.
+
+DT:
+...
+	sfp_i2c: i2c {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpio 18 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpio 19 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <5>;
+		i2c-gpio,timeout-ms = <1>;
+	};
+...
+&eth1 {
+	mdio2: mdio {
+		status = "okay";
+
+		compatible = "virtual,i2c-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		i2c-bus = <&sfp_i2c>;
+		sfp_phy: ethernet-phy@22 {
+			reg = <22>; /* i2c id 0x56 */
+		};
+	};
+};
+...
+&eth1 {
+	status = "okay";
+	...
+	phy-handle = <&sfp_phy>;
+};

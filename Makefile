@@ -19,9 +19,8 @@ endif
 # standard flags for module builds
 EXTRA_CFLAGS += -DLINUX -D__KERNEL__ -DMODULE -O2 -pipe -Wall
 
-TARGET=test.o
+TARGET=mdio-sfp-i2c.o
 obj-m:=$(TARGET)
-#test-objs:=test.o
 
 TARGETS := $(obj-m:.o=.ko)
 ccflags-y += -Wall
