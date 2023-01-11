@@ -1,15 +1,15 @@
-diff -rNu a/drivers/net/phy/Kconfig b/drivers/net/phy/Kconfig
---- a/drivers/net/phy/Kconfig	2021-04-15 13:01:56.853503422 +0300
-+++ b/drivers/net/phy/Kconfig	2021-04-15 12:57:50.721094056 +0300
-@@ -156,6 +156,17 @@
- 
- 	  This is library mode.
+diff -rNu a/drivers/net/mdio/Kconfig b/drivers/net/mdio/Kconfig
+--- a/drivers/net/mdio/Kconfig	2022-09-28 12:10:41.000000000 +0300
++++ b/drivers/net/mdio/Kconfig	2023-01-10 15:56:43.492634489 +0200
+@@ -134,6 +134,17 @@
+ 	  switches of the Microsemi SoCs; it is recommended to switch on
+ 	  CONFIG_HIGH_RES_TIMERS
  
 +config MDIO_SFP_I2C
 +	tristate "SFP-I2C based MDIO buses"
 +	depends on I2C
 +	select MDIO_I2C
-+	---help---
++	help
 +	  This is a small MDIO driver for access sfp-coper PHY registers
 +	  with id 22(i2c id 0x56) via I2C bus.
 +
@@ -19,20 +19,20 @@ diff -rNu a/drivers/net/phy/Kconfig b/drivers/net/phy/Kconfig
  config MDIO_MOXART
  	tristate "MOXA ART MDIO interface support"
  	depends on ARCH_MOXART || COMPILE_TEST
-diff -rNu a/drivers/net/phy/Makefile b/drivers/net/phy/Makefile
---- a/drivers/net/phy/Makefile	2021-04-15 13:01:56.857503364 +0300
-+++ b/drivers/net/phy/Makefile	2021-04-15 12:41:20.303359326 +0300
-@@ -50,6 +50,7 @@
- obj-$(CONFIG_MDIO_GPIO)		+= mdio-gpio.o
- obj-$(CONFIG_MDIO_HISI_FEMAC)	+= mdio-hisi-femac.o
- obj-$(CONFIG_MDIO_I2C)		+= mdio-i2c.o
+diff -rNu a/drivers/net/mdio/Makefile b/drivers/net/mdio/Makefile
+--- a/drivers/net/mdio/Makefile	2022-09-28 12:10:41.000000000 +0300
++++ b/drivers/net/mdio/Makefile	2023-01-10 15:54:27.321656290 +0200
+@@ -13,6 +13,7 @@
+ obj-$(CONFIG_MDIO_I2C)			+= mdio-i2c.o
+ obj-$(CONFIG_MDIO_IPQ4019)		+= mdio-ipq4019.o
+ obj-$(CONFIG_MDIO_IPQ8064)		+= mdio-ipq8064.o
 +obj-$(CONFIG_MDIO_SFP_I2C)+= mdio-sfp-i2c.o
- obj-$(CONFIG_MDIO_MOXART)	+= mdio-moxart.o
- obj-$(CONFIG_MDIO_MSCC_MIIM)	+= mdio-mscc-miim.o
- obj-$(CONFIG_MDIO_OCTEON)	+= mdio-octeon.o
-diff -rNu a/drivers/net/phy/mdio-sfp-i2c.c b/drivers/net/phy/mdio-sfp-i2c.c
---- a/drivers/net/phy/mdio-sfp-i2c.c	1970-01-01 03:00:00.000000000 +0300
-+++ b/drivers/net/phy/mdio-sfp-i2c.c	2021-04-15 13:05:09.730713595 +0300
+ obj-$(CONFIG_MDIO_MOXART)		+= mdio-moxart.o
+ obj-$(CONFIG_MDIO_MSCC_MIIM)		+= mdio-mscc-miim.o
+ obj-$(CONFIG_MDIO_MVUSB)		+= mdio-mvusb.o
+diff -rNu a/drivers/net/mdio/mdio-sfp-i2c.c b/drivers/net/mdio/mdio-sfp-i2c.c
+--- a/drivers/net/mdio/mdio-sfp-i2c.c	1970-01-01 03:00:00.000000000 +0300
++++ b/drivers/net/mdio/mdio-sfp-i2c.c	2023-01-10 15:53:38.217585103 +0200
 @@ -0,0 +1,108 @@
 +#include <linux/module.h>
 +#include <linux/kernel.h>

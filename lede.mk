@@ -1,7 +1,7 @@
 #cross compile для mips
 
 #путь где лежит buildroot openwrt
-WRTP = /home/prog/openwrt/2021-openwrt/openwrt-2021
+WRTP = /home/prog/openwrt/2023-openwrt/openwrt-2023
 
 #определяемся с типом устройства 
 ifeq ($(DEVICE),digi-ex15)
@@ -12,7 +12,7 @@ ifeq ($(DEVICE),digi-ex15)
 endif
 
 ifeq ($(DEVICE),rb941)
-  TOOLCHAIN_DIR := toolchain-mips_24kc_gcc-8.4.0_musl
+  TOOLCHAIN_DIR := toolchain-mips_24kc_gcc-11.2.0_musl
   TARGET_DIR := target-mips_24kc_musl
   KERNEL_SUB_DIR := linux-ath79_mikrotik
   CROSS_COMPILE_PREFIX := mips
@@ -30,7 +30,7 @@ export STAGING_DIR = $(WRTP)/staging_dir/$(TOOLCHAIN_DIR)
 #указываем какой префикс юзать перед сажем gcc или ldd(то есть какое имя у файла бинарника компилятора или линкера)
 export CROSS_COMPILE = $(CROSS_COMPILE_PREFIX)-openwrt-linux-
 #путь к исходнику ядра
-KERNEL_DIR = $(WRTP)/build_dir/$(TARGET_DIR)/$(KERNEL_SUB_DIR)/linux-5.4.96
+KERNEL_DIR = $(WRTP)/build_dir/$(TARGET_DIR)/$(KERNEL_SUB_DIR)/linux-5.10.146
 #где лежат бинарники компилятора(gcc, ldd)
 PATH := $(PATH):$(STAGING_DIR)/bin
 #указываем архитекруту

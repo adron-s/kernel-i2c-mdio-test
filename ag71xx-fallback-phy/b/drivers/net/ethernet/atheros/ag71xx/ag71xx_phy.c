@@ -71,13 +71,34 @@ int ag71xx_phy_connect(struct ag71xx *ag)
 
 		ag->phy_dev = of_phy_connect(ag->dev, phy_node, ag71xx_phy_link_adjust,
 					     0, ag->phy_if_mode);
+		if (ag->phy_dev && of_property_read_bool(phy_node, "suspend-on-init")) {
+			dev_info(&ag->pdev->dev, "suspend-on-init flag is set => doing phy_suspend()\n");
+			phy_suspend(ag->phy_dev);
+		}
 
-		/* on the first loop, we try to use fallback-phy as last chance phy */
+		/* on the first loop, we try to use fallback-phy as the last chance phy */
 		if (!ag->phy_dev && !a) {
-			struct device_node *fallback_np = of_find_node_by_name(np, "fallback-phy");
+			int need_defer = 1;
+			struct device_node *fallback_np;
+			struct mii_bus *_parent_bus;
+
+			fallback_np = of_find_node_by_name(np, "fallback-phy");
 			if (!fallback_np)
 				break;
-			dev_err(&ag->pdev->dev, "Trying to use fallback-phy node\n");
+			if (phy_node->parent) {
+				/* here we determine: if mdio bus(of our phy) is ready.
+					 if yes,then trying phy_connect and if we get an error,
+					 => the sfp-rj45 module is simply missing and we need
+					 to use the fallback_phy. */
+				_parent_bus = of_mdio_find_bus(phy_node->parent);
+				if (_parent_bus) {
+					put_device(&_parent_bus->dev);
+					need_defer = 0;
+				}
+			}
+			if (need_defer)
+				return -EPROBE_DEFER;
+			dev_err(&ag->pdev->dev, "Trying to use the fallback-phy node\n");
 			if (!of_phy_is_fixed_link(fallback_np)) {
 				of_node_put(fallback_np);
 				break;
